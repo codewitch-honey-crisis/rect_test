@@ -7,6 +7,25 @@ using rect_list_t = data::simple_vector<srect16>;
 
 rect_list_t control_rects;
 rect_list_t fill_rects;
+void add_split_rects(const srect16* rects, size_t rects_count, const srect16 cmp) {
+    for(size_t i = 0;i<rects_count;++i) {
+        const srect16& r = rects[i];
+        for(const srect16* it = control_rects.cbegin();it!=control_rects.cend();++it) {
+            if(cmp!=*it) {
+                if(r.intersects(*it) || r.contains(*it) || it->contains(r)) {
+                    srect16 out_rects[4];
+                    size_t out_size=r.split(*it,4,out_rects);
+                    add_split_rects(out_rects,out_size,*it);    
+                } else {
+                    srect16 sr=r.crop((srect16)lcd.bounds());
+                    // just draw it and store it as is
+                    draw::rectangle(lcd,sr,color_t::white); 
+                    fill_rects.push_back(sr);
+                }
+            }
+        }
+    }
+}
 void make_fill_rects() {
     // first pass
 
@@ -21,15 +40,7 @@ void make_fill_rects() {
                     // which returns up to 4 rects in response
                     srect16 out_rects[4];
                     size_t out_size=r.split(*it,4,out_rects);
-                    for(size_t i = 0;i<out_size;++i) {
-                        r = out_rects[i];           
-                        // make sure within bounds
-                        r=r.crop((srect16)lcd.bounds());
-                        // draw it
-                        draw::rectangle(lcd,r,color_t::white);    
-                        fill_rects.push_back(r);
-                    }
-                    break;
+                    add_split_rects(out_rects,out_size,*it);
                 } else {
                     // make sure it's within screen bounds
                     r=r.crop((srect16)lcd.bounds());
