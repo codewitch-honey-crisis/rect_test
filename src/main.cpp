@@ -15,9 +15,8 @@ void make_fill_rects() {
     for(int y=0;y<lcd.dimensions().height;y+=128) {
         for(int x=0;x<lcd.dimensions().width;x+=128) {
             srect16 r(spoint16(x,y),ssize16(128,128));
-            bool intersects = false;
             for(const srect16* it = control_rects.cbegin();it!=control_rects.cend();++it) {
-                if(r.intersects(*it)) {
+                if(r.intersects(*it) || r.contains(*it) || it->contains(r)) {
                     // here we punch a rect sized hole in another rect
                     // which returns up to 4 rects in response
                     srect16 out_rects[4];
@@ -41,8 +40,6 @@ void make_fill_rects() {
             }
         }
     }
-    // second pass
-    // combine any of the rects we made above that it's possible to combine.E
 }
 
 // this is basically main() in normal C++
