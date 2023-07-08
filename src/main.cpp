@@ -12,7 +12,7 @@ void add_split_rects(const srect16* rects, size_t rects_count, const srect16 cmp
         const srect16& r = rects[i];
         for(const srect16* it = control_rects.cbegin();it!=control_rects.cend();++it) {
             if(cmp!=*it) {
-                if(r.intersects(*it) || r.contains(*it) || it->contains(r)) {
+                if(r.intersects(*it)) {
                     srect16 out_rects[4];
                     size_t out_size=r.split(*it,4,out_rects);
                     add_split_rects(out_rects,out_size,*it);    
@@ -35,7 +35,7 @@ void make_fill_rects() {
         for(int x=0;x<lcd.dimensions().width;x+=128) {
             srect16 r(spoint16(x,y),ssize16(128,128));
             for(const srect16* it = control_rects.cbegin();it!=control_rects.cend();++it) {
-                if(r.intersects(*it) || r.contains(*it) || it->contains(r)) {
+                if(r.intersects(*it)) {
                     // here we punch a rect sized hole in another rect
                     // which returns up to 4 rects in response
                     srect16 out_rects[4];
