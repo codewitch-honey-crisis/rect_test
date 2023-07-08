@@ -27,13 +27,16 @@ void add_split_rects(const srect16* rects, size_t rects_count, const srect16 cmp
     }
 }
 void make_fill_rects() {
+    const size_t buffer_size = 32*1024;
+    const size_t width = 128;
+    const size_t height = width;
     // first pass
-
+    Serial.println(floorf(sqrtf(((float)buffer_size)/ ((float)decltype(lcd)::pixel_type::bit_depth/8.0f))));
     // fill in the areas where the other rects weren't
     // up to 128x128 in size
-    for(int y=0;y<lcd.dimensions().height;y+=128) {
-        for(int x=0;x<lcd.dimensions().width;x+=128) {
-            srect16 r(spoint16(x,y),ssize16(128,128));
+    for(int y=0;y<lcd.dimensions().height;y+=height) {
+        for(int x=0;x<lcd.dimensions().width;x+=width) {
+            srect16 r(spoint16(x,y),ssize16(width,height));
             for(const srect16* it = control_rects.cbegin();it!=control_rects.cend();++it) {
                 if(r.intersects(*it)) {
                     // here we punch a rect sized hole in another rect
