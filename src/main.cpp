@@ -1,5 +1,4 @@
 #include <Arduino.h>
-
 #include <htcw_data.hpp>
 #include <ttgo.hpp>
 using namespace arduino;
@@ -20,13 +19,13 @@ rect_list_t fill_rects;
 split_rect_stack_t split_stack;
 bool combine_fill_rect(srect16& r) {
     bool found = false;
-    for(srect16* it = fill_rects.begin();it!=fill_rects.end();++it) {
-        srect16& fr = *it;
+    for(auto fr : fill_rects) {
         if(fr==r || fr.contains(r)) {
             found = true;
+            break;
         } else {
-            uint32_t area = (uint32_t)(fr.width()*fr.height());
-            area+=(uint32_t)(r.width()*r.height());
+            uint32_t area = (uint32_t)(fr.area());
+            area+=(uint32_t)(r.area());
             if(area<=max_area) {
                 if(fr.x1==r.x1&&fr.x2==r.x2) {
                     if(fr.y1==r.y2+1) { // fr extends from the bottom of r
@@ -52,6 +51,7 @@ bool combine_fill_rect(srect16& r) {
                 }
                 if(found) {
                     Serial.println("Combined rects");
+                    break;
                 }
             }
         }
@@ -96,7 +96,8 @@ void make_fill_rects() {
                             srn.count = r.split(cr, 4, srn.rects);
                             if (srn.count == 1 && r == *srn.rects) {
                                 // just store it as is
-                                combine_fill_rect(r);         
+                                //combine_fill_rect(r);         
+                                fill_rects.push_back(r);
                             } else if(srn.count>0) {
                                 split_stack.push(srn);
                             }
@@ -104,7 +105,8 @@ void make_fill_rects() {
                     }
                     if (!intersects) {
                         // just store it as is
-                        combine_fill_rect(r);
+                        //combine_fill_rect(r);
+                        fill_rects.push_back(r);
                     }
                 }
             }
@@ -120,23 +122,41 @@ void setup() {
     lcd.rotation(3);
 }
 void loop() {
+    // ensure the backlight stays on
     dimmer.wake();
+    // clear the screen
+    draw::filled_rectangle(lcd, lcd.bounds(), color_t::black);
+    // start from scratch
     control_rects.clear();
     fill_rects.clear();
     // just add some random rects to the screen
-    int ctl_count = rand() % 5;
-    while(ctl_count > 0) {
-        srect16 r(
-            spoint16(rand() % lcd.dimensions().width, rand() % lcd.dimensions().height),
-            spoint16(rand() % lcd.dimensions().width, rand() % lcd.dimensions().height));
-        r.normalize_inplace();
-    
-        control_rects.push_back(r);
-        --ctl_count;
-        
+    int ctl_count = rand() % 5 + 1;
+    rect_list_t new_ctls;
+    // tried to keep them from overlapping but it's not working.
+    for(int i = 0;i<ctl_count;++i) {
+        // make a random rectangle
+        srect16 ctl_rect(rand()%lcd.dimensions().width,rand()%lcd.dimensions().height,
+                rand()%lcd.dimensions().width,rand()%lcd.dimensions().height);
+        // ensure the rect point 1 is the upper left
+        ctl_rect.normalize_inplace();
+        // ensure this rect doesn't overlap with any we've already
+        // added
+        bool skip = false;
+        for(const auto cmp : control_rects) {
+            if(ctl_rect.intersects(cmp)) {
+                skip = true;
+                break;
+            }
+        }
+        // add it to the "controls"
+        if(!skip) {
+            control_rects.push_back(ctl_rect);
+        }
     }
+    // fill the remainder with rects
     make_fill_rects();
-    draw::filled_rectangle(lcd, lcd.bounds(), color_t::black);
+    // draw all the remainder rects
     draw_rects();
-    delay(2 * 1000);
+    // wait 5 seconds
+    delay(5 * 1000);
 }
